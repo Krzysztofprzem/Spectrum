@@ -21,7 +21,7 @@ def load_samples(path):
     :return: sampling frequency, list of normalized channels
     """
     fs, channels = wavfile.read(path)
-    channels = np.transpose(channels)/255
+    channels = np.transpose(channels)/256
     return fs, channels
 
 
@@ -33,10 +33,11 @@ def compute_FFT(channels, N):
     :return: list of magnitudes of channels
     """
     channels_magnitude = []
+    scaler = N/16
     for channel in channels:
         channel_fft = fft(channel[1000000:], N)
         magnitude = abs(channel_fft)
-        channels_magnitude.append(np.ndarray.tolist(magnitude))
+        channels_magnitude.append(np.ndarray.tolist(magnitude[:int(N/2)]/scaler))
     return channels_magnitude
 
 
@@ -77,12 +78,12 @@ def draw_spectrum(frame, channels_magnitude, r, N):
 
     phase_shift = 0
 
+    delta_fi = 2*np.pi/len(channels_magnitude)/N
     for i in range(len(channels_magnitude)):
         phase = i*2*np.pi/len(channels_magnitude) + (np.pi/2) + phase_shift
-        delta_fi = 2*np.pi/len(channels_magnitude)/N
         for j in range(len(channels_magnitude[i])):
             point1, point2 = get_coords_of_lines(center_x, center_y, r, phase, delta_fi, j, channels_magnitude[i][j])
-            frame = cv2.line(frame, point1, point2, (0, 0, 255), 1)
+            frame = cv2.line(frame, point1, point2, (71, 99, 255), 1)
             frame = cv2.circle(frame, point2, 2, (0, 0, 255), -1)
             cv2.imshow("frame", frame)
             cv2.waitKey(10)
@@ -108,25 +109,34 @@ def draw(frame, channels_magnitude, N):
     :param N: size of FFT
     :return: frame with drawed spectrum
     """
-    r = 75
+    r = 150
     draw_spectrum(frame, channels_magnitude, r, N)
     #draw_circle(frame, channels_magnitude, r)
     return frame
 
 def main():
+    # test = [0,1,2,3,4,5,6,7]
+    # print(test[7-2:7+1])
+    # exit()
+
     framerate = 60      # frames per second
-    N = 128
+    N = 256
 
     image = load_image()
     fs, channels = load_samples("beelze.wav")
 
+    # fs samples per second
+    # framerate frames per second
+    # fs/framerate samples per frame
+    # [i*fs/framerate - (N-1):i*fs/framerate+1)] samples per frame
+
+
     channels_magnitude = compute_FFT(channels, N)
+
 
     # while True:
     frame = image.copy()
-    frame = draw(frame, channels_magnitude, N)
-    print(fs)
-    print((channels_magnitude))
+    frame = draw(frame, channels_magnitude, N/2)
 
 
 
