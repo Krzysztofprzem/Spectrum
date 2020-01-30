@@ -35,7 +35,7 @@ def compute_FFT(channels, N):
     channels_magnitude = []
     scaler = N/16
     for channel in channels:
-        channel_fft = fft(channel[1000000:], N)
+        channel_fft = fft(channel, N)
         magnitude = abs(channel_fft)
         channels_magnitude.append(np.ndarray.tolist(magnitude[:int(N/2)]/scaler))
     return channels_magnitude
@@ -63,7 +63,7 @@ def get_coords_of_lines(center_x, center_y, r, phase, delta_fi, j, harmonic):
 
 
 
-def draw_spectrum(frame, channels_magnitude, r, N):
+def draw_spectrum(frame, channels_magnitude, r, N, phase_shift):
     """
     Method to draw spectrum on circle on frame
     :param frame: frame
@@ -76,8 +76,6 @@ def draw_spectrum(frame, channels_magnitude, r, N):
     center_y = int(h/2)
     center_x = int(w/2)
 
-    phase_shift = 0
-
     delta_fi = 2*np.pi/len(channels_magnitude)/N
     for i in range(len(channels_magnitude)):
         phase = i*2*np.pi/len(channels_magnitude) + (np.pi/2) + phase_shift
@@ -85,8 +83,8 @@ def draw_spectrum(frame, channels_magnitude, r, N):
             point1, point2 = get_coords_of_lines(center_x, center_y, r, phase, delta_fi, j, channels_magnitude[i][j])
             frame = cv2.line(frame, point1, point2, (71, 99, 255), 1)
             frame = cv2.circle(frame, point2, 2, (0, 0, 255), -1)
-            cv2.imshow("frame", frame)
-            cv2.waitKey(10)
+            # cv2.imshow("frame", frame)
+            # cv2.waitKey(10)
 
 
 def draw_circle(frame, channels_magnitude, r):
@@ -101,7 +99,7 @@ def draw_circle(frame, channels_magnitude, r):
     return frame
 
 
-def draw(frame, channels_magnitude, N):
+def draw(frame, channels_magnitude, N, phase_shift):
     """
     Method responsible for calling all drawing methods
     :param frame: frame
@@ -110,7 +108,7 @@ def draw(frame, channels_magnitude, N):
     :return: frame with drawed spectrum
     """
     r = 150
-    draw_spectrum(frame, channels_magnitude, r, N)
+    draw_spectrum(frame, channels_magnitude, r, N, phase_shift)
     #draw_circle(frame, channels_magnitude, r)
     return frame
 
@@ -130,13 +128,19 @@ def main():
     # fs/framerate samples per frame
     # [i*fs/framerate - (N-1):i*fs/framerate+1)] samples per frame
 
-
-    channels_magnitude = compute_FFT(channels, N)
-
-
-    # while True:
-    frame = image.copy()
-    frame = draw(frame, channels_magnitude, N/2)
+    i=0
+    while True:
+        if (i-1)*int(fs/framerate)+1 > len(channels[0]):
+            break
+        print(i)
+        #print(channels[:,i*int(fs/framerate) - (N-1):i*int(fs/framerate)+1])
+        channels_magnitude = compute_FFT(channels[:,i*int(fs/framerate) - (N-1):i*int(fs/framerate)+1], N)
+        # while True:
+        frame = image.copy()
+        frame = draw(frame, channels_magnitude, N/2, i/(2*framerate))
+        i+=1
+        cv2.imshow("frame", frame)
+        cv2.waitKey(int(1000/framerate))
 
 
 
